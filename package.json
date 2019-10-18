@@ -1,0 +1,28 @@
+{
+  "name": "masage_lili",
+  "version": "1.0.0",
+  "description": "site for my mother",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "reactjs",
+    "massage_lili"
+  ],
+  "author": "Gherman Adrian",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^16.10.2",
+    "react-dom": "^16.10.2"
+  },
+  "devDependencies": {
+    "2015": "0.0.1",
+    "babel-loader": "^8.0.6",
+    "babel-preset": "^1.0.15",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "webpack": "^4.41.2",
+    "webpack-dev-server": "^3.8.2"
+  }
+}
