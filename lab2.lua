@@ -135,7 +135,7 @@ q50_protocol.fields = {packet_type_field, packet_id_field, packet_length_field, 
                        packet_company_name_field, packet_device_id_field, packet_content_length_field};
 
 function q50_protocol.dissector(buffer, pinfo, tree)
-    print("=========Start to disect============");
+    print("=========Start to disect V2============");
     pinfo.cols.protocol = q50_protocol.name
     local length = buffer:len();
     print("Packet legth: " .. length);
@@ -147,60 +147,82 @@ function q50_protocol.dissector(buffer, pinfo, tree)
         local strData = buffer():string();
         subtree:add(packet_data_field, strData);
         print("Raw data: ", strData);
-        if (strData:match("]%[")) then
-            subtree:add(buffer(), "Cannot read truncated data");
-        else
-            local arr_data = Split(strData:sub(2, length - 1), ',');
-            DisplayArray(arr_data);
-            print("Header data", arr_data[1]);
-            local headerArr = Split(arr_data[1], '*');
-            DisplayArray(headerArr);
-            -- company name
-            subtree:add(packet_company_name_field, headerArr[1]);
-            -- device id
-            subtree:add(packet_device_id_field, headerArr[2]);
-            -- content length
-            subtree:add(packet_content_length_field, headerArr[3]);
 
-            local packetId = headerArr[4];
-            -- packet type
-            subtree:add(packet_id_field, packetId);
-            print("Id: ", packetId);
+        local groups = ExtractGroups(strData);
 
-            local switch_packets = {
-                ["LK"] = function(x)
-                    subtree:add(packet_type_field, "Link remains");
-                    WriteLinkRemainsData(subtree, buffer, arr_data);
-                end,
-                ["UD"] = function(x)
-                    subtree:add(packet_type_field, "Location data reporting");
-                    WriteLocationData(subtree, buffer, arr_data);
-                end,
-                ["UD2"] = function(x)
-                    subtree:add(packet_type_field, "Blind spot data transmission");
-                    WriteLocationData(subtree, buffer, arr_data);
-                end,
-                ["AL"] = function(x)
-                    subtree:add(packet_type_field, "Alarming data reporting");
-                    WriteLocationData(subtree, buffer, arr_data);
-                end,
-                ["WAD"] = function(x)
-                    subtree:add(packet_type_field, "Address requesting commands");
-                    WriteAddressRequestingData(subtree, buffer, arr_data);
-                    WriteLocationData(subtree, buffer, arr_data:sub(3, arr_data:len()));
-                end,
-                ["WG"] = function(x)
-                    subtree:add(packet_type_field, "Sending SMS");
-                    WriteLocationData(subtree, buffer, arr_data);
-                end,
-                default = function(x)
-                    print("Undefined terminal sending data!")
-                end
-            };
-
-            Switch(switch_packets, packetId)
+        for k, group in pairs(groups) do
+            HandleTCPPacket(subtree, group, length, buffer);
         end
+
+
+
     end
+end
+function HandleTCPPacket(subtree, strData, length, buffer)
+    local arr_data = Split(strData:sub(2, length - 1), ',');
+    DisplayArray(arr_data);
+    print("Header data", arr_data[1]);
+    local headerArr = Split(arr_data[1], '*');
+    DisplayArray(headerArr);
+    -- company name
+    subtree:add(packet_company_name_field, headerArr[1]);
+    -- device id
+    subtree:add(packet_device_id_field, headerArr[2]);
+    -- content length
+    subtree:add(packet_content_length_field, headerArr[3]);
+
+    local packetId = headerArr[4];
+    -- packet type
+    subtree:add(packet_id_field, packetId);
+    print("Id: ", packetId);
+
+    local switch_packets = {
+        ["LK"] = function(x)
+            subtree:add(packet_type_field, "Link remains");
+            WriteLinkRemainsData(subtree, buffer, arr_data);
+        end,
+        ["UD"] = function(x)
+            subtree:add(packet_type_field, "Location data reporting");
+            WriteLocationData(subtree, buffer, arr_data);
+        end,
+        ["UD2"] = function(x)
+            subtree:add(packet_type_field, "Blind spot data transmission");
+            WriteLocationData(subtree, buffer, arr_data);
+        end,
+        ["AL"] = function(x)
+            subtree:add(packet_type_field, "Alarming data reporting");
+            WriteLocationData(subtree, buffer, arr_data);
+        end,
+        ["WAD"] = function(x)
+            subtree:add(packet_type_field, "Address requesting commands");
+            WriteAddressRequestingData(subtree, buffer, arr_data);
+            WriteLocationData(subtree, buffer, arr_data:sub(3, arr_data:len()));
+        end,
+        ["WG"] = function(x)
+            subtree:add(packet_type_field, "Sending SMS");
+            WriteLocationData(subtree, buffer, arr_data);
+        end,
+        default = function(x)
+            print("Undefined terminal sending data!")
+        end
+    };
+
+    Switch(switch_packets, packetId)
+end
+
+function ExtractGroups(raw)
+    raw = tostring(raw)
+print ("Datele sunt : ".. raw .." Sfarsit");
+local array = {}
+local words = {}
+for w in (raw .. ";"):gmatch("%[[^ %[]+%]") do 
+    print("capture= "..w);
+    table.insert(array, w);
+end
+-- print("Datele sunt : ", array);
+return array;
+    -- local groups = string.match(raw, "%[%w+%]");
+    -- return groups;
 end
 
 function WriteAddressRequestingData(subtree, buffer, data)
